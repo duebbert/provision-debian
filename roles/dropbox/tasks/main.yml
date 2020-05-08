@@ -1,0 +1,16 @@
+- name: dropbox apt repo
+  apt_repository:
+    state: present
+    repo: deb [arch=amd64] http://linux.dropbox.com/debian sid main
+    filename: dropbox.list
+    validate_certs: True
+    update_cache: True
+  register: task_result
+  until: task_result is succeeded
+  retries: 3
+  delay: 5
+  become: True
+  notify: update apt repository cache
+
+- name: Install Dropbox
+  apt: name=dropbox

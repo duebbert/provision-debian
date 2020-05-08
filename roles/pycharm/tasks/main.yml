@@ -1,0 +1,7 @@
+
+- name: Install PyCharm
+  unarchive:
+    remote_src: yes
+    src: https://download.jetbrains.com/python/pycharm-professional-2020.1.tar.gz
+    dest: /opt
+    creates: "/opt/pycharm-professional-2020.1/bin/pycharm.sh"

@@ -1,0 +1,23 @@
+---
+- name: Install packages
+  apt:
+    name: "{{item}}"
+    autoclean: True
+    autoremove: True
+    force_apt_get: True
+    update_cache: True
+    cache_valid_time: 3600
+    install_recommends: False
+  with_items:
+    - apt-listbugs
+    - apt-listchanged
+    - docker.io
+    - firefox-esr
+    - git
+    - grub-customizer
+    - htop
+    - keepassxc
+    - vim
+    - zulucrypt-gui
+    - virt-manager
+  become: true
