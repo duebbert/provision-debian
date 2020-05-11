@@ -1,7 +1,52 @@
 #!/bin/bash
-# TODO: standard settings
+# TODO:
+#   - standard shell script settings
+#   - replace dotbot
+#   - test in virt-man
+#   - rootless Docker: https://docs.docker.com/engine/security/rootless/
+#   - https://help.ubuntu.com/community/ManualFullSystemEncryption
+
+#   - Add private settings:
+#      - .ssh config
+#      - add standard zulucrypt volume to favourites
+#      - [PRIVATE] add symlinks
+#      - [PRIVATE] start zulucrypt and mount volume
+#      - [PRIVATE] start seafile after zulucrypt
+#      - [PRIVATE] implement getting confidential settings
+#      - [PRIVATEpycharm settings
+#      - keepassxc settings
+#      - Firefox sync
 
 TMP_DIR=/tmp
+
+########################################################################################################################
+# Install Franz
+
+FRANZ_DEB=franz_5.5.0_amd64.deb
+FRANZ_URL=https://github.com/meetfranz/franz/releases/download/v5.5.0/$FRANZ_DEB
+wget "$FRANZ_URL" -O $TMP_DIR/$FRANZ_DEB
+sudo apt install $TMP_DIR/$FRANZ_DEB
+rm $TMP_DIR/$FRANZ_DEB
+
+exit
+########################################################################################################################
+# Install Veracrypt
+
+VERACRYPT_DEB=veracrypt-1.24-Update4-Debian-10-amd64.deb
+VERACRYPT_URL="https://launchpad.net/veracrypt/trunk/1.24-update4/+download/$VERACRYPT_DEB"
+wget "$VERACRYPT_URL" -O $TMP_DIR/$VERACRYPT_DEB
+sudo apt install $TMP_DIR/$VERACRYPT_DEB
+rm $TMP_DIR/$VERACRYPT_DEB
+
+
+########################################################################################################################
+# Install Yarn
+
+sudo apt update
+sudo apt install yarnpkg
+sudo update-alternatives --install /usr/bin/yarn yarn /usr/bin/yarnpkg 1
+
+exit
 
 ########################################################################################################################
 # 7. Grub: replace graphics mode with 1024x768
@@ -24,18 +69,48 @@ sudo apt install \
   software-properties-common \
   apt-listbugs \
   apt-listchanges \
-  docker.io \
-  docker-compose \
   git \
   grub-customizer \
   htop \
   keepassxc \
   vim \
-  zulucrypt-gui \
   virt-manager \
   curl \
   nodejs \
-  firmware-linux
+  firmware-linux \
+  yarnpkg
+#  zulucrypt-gui \
+
+########################################################################################################################
+# Install Docker
+
+sudo apt update
+sudo apt install docker.io uidmap docker-compose
+
+# Allow running as non-root
+# https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user
+sudo groupadd docker
+sudo usermod -aG docker "$USER"
+newgrp docker
+
+
+# TODO
+## https://docs.docker.com/engine/security/rootless/
+#echo "kernel.unprivileged_userns_clone=1" | sudo tee /etc/sysctl.d/60-docker.conf >/dev/null
+#sudo sysctl -p --system
+#sudo modprobe overlay permit_mounts_in_userns=1
+#echo "options overlay permit_mounts_in_userns=1" | sudo tee /etc/modprobe.d/docker-overlay.conf >/dev/null
+
+
+########################################################################################################################
+# Install Podman
+# TODO: make it work....
+
+#echo 'deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Testing/ /' | sudo tee /etc/apt/sources.list.d/podman-kubic.list > /dev/null
+#curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Testing/Release.key | sudo apt-key add -
+#sudo apt update
+#sudo apt-get -qq -y install podman
+
 
 ########################################################################################################################
 # Install Firefox Quantum
@@ -91,6 +166,11 @@ cd "$PYCHARM_ROOT/pycharm-*/bin" || exit
 ./pycharm.sh
 cd "$PYCHARM_ROOT" || exit
 sudo rm $PYCHARM_FILE
+
+# Increaase inotify limit
+echo "fs.inotify.max_user_watches = 524288" | sudo tee /etc/sysctl.d/99-pycharm-inotify.conf >/dev/null
+sudo sysctl -p --system
+# systemctl restart systemd-sysctl.service
 
 ########################################################################################################################
 # 4. Install Chrome
