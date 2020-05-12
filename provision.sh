@@ -1,14 +1,24 @@
 #!/bin/bash
+# saner programming env: these switches turn some bugs into errors
+set -o errexit -o pipefail -o noclobber -o nounset
+
 # TODO:
-#   - standard shell script settings
 #   - replace dotbot
 #   - test in virt-man
 #   - rootless Docker: https://docs.docker.com/engine/security/rootless/
 #   - https://help.ubuntu.com/community/ManualFullSystemEncryption
 
 #   - Add private settings:
-#      - .ssh config
-#      - add standard zulucrypt volume to favourites
+#      - dotfiles:
+#         - switch languages meta-space
+#         - kpanel
+#         - gcloud: ./config/gcloud
+#         - kube: .kube
+#         - .ssh config: .ssh/config
+#         - docker hub: .docker directory
+#         - add standard veracrypt volume to favourites
+#         - insomnia: .config/Insomnia
+#         - JetBrains: .config/JetBrains
 #      - [PRIVATE] add symlinks
 #      - [PRIVATE] start zulucrypt and mount volume
 #      - [PRIVATE] start seafile after zulucrypt
@@ -20,6 +30,32 @@
 TMP_DIR=/tmp
 
 ########################################################################################################################
+# Install Vagrant and Qemu/KVM
+
+sudo apt update
+sudo apt install -y vagrant vagrant-libvirt qemu-kvm libvirt-clients libvirt-daemon-system
+sudo usermod -aG libvirt "$USER"
+newgrp libvirt
+sudo service libvirtd start
+
+exit
+
+########################################################################################################################
+# Install Insomnia
+
+# Add to sources
+echo "deb https://dl.bintray.com/getinsomnia/Insomnia /" |
+  sudo tee /etc/apt/sources.list.d/insomnia.list >/dev/null
+
+# Add public key used to verify code signature
+wget --quiet -O - https://insomnia.rest/keys/debian-public.key.asc |
+  sudo apt-key add -
+
+# Refresh repository sources and install Insomnia
+sudo apt-get update
+sudo apt-get install insomnia
+
+########################################################################################################################
 # Install Franz
 
 FRANZ_DEB=franz_5.5.0_amd64.deb
@@ -28,7 +64,6 @@ wget "$FRANZ_URL" -O $TMP_DIR/$FRANZ_DEB
 sudo apt install $TMP_DIR/$FRANZ_DEB
 rm $TMP_DIR/$FRANZ_DEB
 
-exit
 ########################################################################################################################
 # Install Veracrypt
 
@@ -37,7 +72,6 @@ VERACRYPT_URL="https://launchpad.net/veracrypt/trunk/1.24-update4/+download/$VER
 wget "$VERACRYPT_URL" -O $TMP_DIR/$VERACRYPT_DEB
 sudo apt install $TMP_DIR/$VERACRYPT_DEB
 rm $TMP_DIR/$VERACRYPT_DEB
-
 
 ########################################################################################################################
 # Install Yarn
@@ -78,7 +112,12 @@ sudo apt install \
   curl \
   nodejs \
   firmware-linux \
-  yarnpkg
+  yarnpkg \
+  jq \
+  pulseaudio \
+  pulseaudio-module-bluetooth \
+  bluez-firmware
+
 #  zulucrypt-gui \
 
 ########################################################################################################################
@@ -93,14 +132,12 @@ sudo groupadd docker
 sudo usermod -aG docker "$USER"
 newgrp docker
 
-
 # TODO
 ## https://docs.docker.com/engine/security/rootless/
 #echo "kernel.unprivileged_userns_clone=1" | sudo tee /etc/sysctl.d/60-docker.conf >/dev/null
 #sudo sysctl -p --system
 #sudo modprobe overlay permit_mounts_in_userns=1
 #echo "options overlay permit_mounts_in_userns=1" | sudo tee /etc/modprobe.d/docker-overlay.conf >/dev/null
-
 
 ########################################################################################################################
 # Install Podman
@@ -110,7 +147,6 @@ newgrp docker
 #curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Testing/Release.key | sudo apt-key add -
 #sudo apt update
 #sudo apt-get -qq -y install podman
-
 
 ########################################################################################################################
 # Install Firefox Quantum
@@ -145,6 +181,8 @@ DROPBOX_DEB=dropbox_2020.03.04_amd64.deb
 DROPBOX_URL="https://www.dropbox.com/download?dl=packages/ubuntu/$DROPBOX_DEB"
 DROPBOX_DEB_FIXED="${DROPBOX_DEB%.*}_fixed.deb"
 sudo wget "$DROPBOX_URL" -O $TMP_DIR/$DROPBOX_DEB
+
+# https://www.reddit.com/r/debian/comments/g13vxj/dropbox_users_in_testingsid_libpango100_to/
 sudo dpkg-deb -R $TMP_DIR/$DROPBOX_DEB $TMP_DIR/dropbox-fix
 sudo sed -i "s/libpango1.0-0/libpango-1.0-0/g" $TMP_DIR/dropbox-fix/DEBIAN/control
 sudo dpkg-deb -b $TMP_DIR/dropbox-fix $TMP_DIR/$DROPBOX_DEB_FIXED
